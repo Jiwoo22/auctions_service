@@ -1,5 +1,7 @@
 import AWS from "aws-sdk";
+import validator from "@middy/validator";
 import commonMiddleware from "../lib/commonMiddleware";
+import placeBidSchema from "../lib/schemas/placeBidSchema";
 import createError from "http-errors";
 import { getAuctionById } from "./getAuction";
 
@@ -11,13 +13,15 @@ async function placeBid(event, context) {
 
   const auction = await getAuctionById(id);
 
-  if(auction.status !== 'OPEN'){
-    throw new createError.Forbidden(`You cannot bid on closed auctions!`)
+  if (auction.status !== "OPEN") {
+    throw new createError.Forbidden(`You cannot bid on closed auctions!`);
   }
   if (amount <= auction.highestBid.amount) {
-    throw new createError.Forbidden(`Your bid must be higher than ${auction.highestBid.amount}`)
+    throw new createError.Forbidden(
+      `Your bid must be higher than ${auction.highestBid.amount}`
+    );
   }
-  
+
   const params = {
     TableName: process.env.AUCTIONS_TABLE_NAME,
     Key: { id },
@@ -44,4 +48,6 @@ async function placeBid(event, context) {
   };
 }
 
-export const handler = commonMiddleware(placeBid);
+export const handler = commonMiddleware(placeBid).use(
+  validator({ inputSchema: placeBidSchema })
+);
